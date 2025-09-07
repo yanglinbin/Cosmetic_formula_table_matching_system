@@ -1,0 +1,306 @@
+{% extends "base.html" %}
+{% block title %}配方表匹配 - 化妆品配方表匹配系统{% endblock %}
+
+{% block content %}
+<!-- 导航栏 -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+        <a class="navbar-brand" href="/dashboard">🧪 化妆品配方匹配系统</a>
+        <div class="navbar-nav ms-auto">
+            <a class="nav-link active" href="/upload-match">📋 配方表匹配</a>
+            <a class="nav-link" href="/reference-library">📚 配方库管理</a>
+            {% if is_admin %}
+            <a class="nav-link" href="/system-config">⚙️ 系统配置</a>
+            <a class="nav-link" href="/docs">📖 API文档</a>
+            {% endif %}
+            <div class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                    <i class="fas fa-user me-1"></i>{{ current_user.username }}
+                    {% if is_admin %}
+                    <span class="badge bg-warning ms-1">管理员</span>
+                    {% else %}
+                    <span class="badge bg-info ms-1">用户</span>
+                    {% endif %}
+                </a>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="#" onclick="showChangePasswordModal()">
+                        <i class="fas fa-key me-2"></i>修改密码
+                    </a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="#" onclick="logout()">
+                        <i class="fas fa-sign-out-alt me-2"></i>退出登录
+                    </a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="container">
+    <div class="page-header text-center">
+        <h1 class="fw-bold mb-4">📋 配方表匹配系统</h1>
+        <p class="lead">上传Excel配方表，自动与配方库进行智能匹配分析</p>
+    </div>
+</div>
+
+<div class="container">
+    <div class="module-container">
+        <h2 class="module-title">🎯 匹配模式设置</h2>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="strictMatchMode" checked>
+                    <label class="form-check-label" for="strictMatchMode">
+                        <strong>严格范围匹配</strong>
+                    </label>
+                    <div class="form-text">
+                        仅匹配相同产品类型和客户的配方
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 text-end">
+                <button class="btn btn-primary btn-upload" data-bs-toggle="modal" data-bs-target="#uploadModal">
+                    <i class="fas fa-plus"></i> 上传配方表
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="module-container">
+        <div class="row">
+            <!-- 待匹配配方列表 -->
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">📋 待匹配配方列表</h5>
+                        <div id="batchActions" style="display: none;">
+                            <button class="btn btn-sm btn-danger" onclick="batchDeleteFormulas()">
+                                <i class="fas fa-trash"></i> 批量删除
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-2" id="selectAllContainer" style="display: none;">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="selectAll"
+                                       onchange="toggleSelectAll()">
+                                <label class="form-check-label" for="selectAll">
+                                    全选 / 全不选
+                                </label>
+                                <span class="ms-3 text-muted" id="selectedCount">已选择: 0</span>
+                            </div>
+                            <hr>
+                        </div>
+                        <div id="formulasList">加载中...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 匹配结果区域 -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>🎯 匹配结果</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="matchResults">请先上传配方文件或选择上方的配方进行匹配</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 上传配方模态框 -->
+<div class="modal fade" id="uploadModal" tabindex="-1" aria-labelledby="uploadModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="uploadModalLabel">📁 上传配方表</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="uploadForm" enctype="multipart/form-data">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">配方表文件 (Excel格式)</label>
+                                <input type="file" class="form-control" name="file" accept=".xlsx,.xls" required
+                                       id="formulaFile">
+                                <div class="form-text">支持 .xlsx 和 .xls 格式</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">配方名称</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" name="formula_name" required id="formulaName"
+                                           placeholder="将自动使用文件名">
+                                    <button class="btn btn-outline-secondary" type="button" id="autoRecognizeBtn" 
+                                            onclick="manualRecognizeProductType()" title="根据配方名称自动识别产品类型">
+                                        <i class="fas fa-magic"></i>
+                                    </button>
+                                    <button class="btn btn-outline-info" type="button" 
+                                            onclick="showQuickMappingModal()" title="快速添加产品类型映射">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                </div>
+                                <div class="form-text">文件上传时会自动填充并识别产品类型，也可手动点击魔法按钮识别</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">产品类型 *</label>
+                                <select class="form-select" name="product_category" id="uploadProductCategory" required
+                                        onchange="updateUploadSubcategories()">
+                                    <option value="">请选择产品大类</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">产品细分类型</label>
+                                <select class="form-select" name="product_subcategory" id="uploadProductSubcategory"
+                                        disabled>
+                                    <option value="">请先选择产品大类</option>
+                                </select>
+                                <input type="hidden" name="product_type" id="uploadFinalProductType">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="mb-3">
+                                <label class="form-label">客户信息</label>
+                                <div class="position-relative">
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" name="customer" id="customerInput" 
+                                               placeholder="输入客户名称或点击箭头选择" autocomplete="off">
+                                        <button class="btn btn-outline-secondary" type="button" id="customerDropdownBtn">
+                                            <i class="fas fa-chevron-down"></i>
+                                        </button>
+                                    </div>
+                                    <!-- 自定义下拉建议列表 -->
+                                    <div id="customerSuggestions" class="customer-suggestions" style="display: none;">
+                                        <div class="suggestions-content">
+                                            <div class="text-muted p-2 small">开始输入以搜索客户...</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form-text">可手动输入客户名称，或点击下拉箭头选择已有客户</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="alert alert-info">
+                        <strong>提示：</strong>
+                        <ul class="mb-0 mt-2">
+                            <li>Excel文件应包含成分名称、含量等信息</li>
+                            <li>配方名称将自动使用文件名，也可手动修改</li>
+                            <li>上传后需要手动点击匹配按钮进行配方匹配分析</li>
+                        </ul>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="submitUploadForm()">
+                    <i class="fas fa-upload"></i> 上传配方表
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 快速添加产品类型映射模态框 -->
+<div class="modal fade" id="quickMappingModal" tabindex="-1" aria-labelledby="quickMappingModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="quickMappingModalLabel">
+                    <i class="fas fa-plus"></i> 快速添加产品类型映射
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="quickMappingForm">
+                    <div class="mb-3">
+                        <label class="form-label">配方名称 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="mappingFromName" required
+                               placeholder="输入需要映射的配方名称">
+                        <div class="form-text">支持部分匹配，如输入"清洁剂"可匹配包含此关键词的所有配方名</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">映射到产品类型 <span class="text-danger">*</span></label>
+                        <select class="form-select" id="mappingToProductType" required>
+                            <option value="">请选择目标产品类型</option>
+                            <!-- 选项将动态从数据库加载 -->
+                        </select>
+                    </div>
+                    <div class="alert alert-info">
+                        <strong>说明：</strong> 添加映射后，系统会优先使用映射表进行产品类型识别。
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="submitQuickMapping()">
+                    <i class="fas fa-plus"></i> 添加映射
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 修改密码模态框 -->
+<div class="modal fade" id="changePasswordModal" tabindex="-1" aria-labelledby="changePasswordModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="changePasswordModalLabel">
+                    <i class="fas fa-key me-2"></i>修改密码
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="changePasswordForm">
+                    <div class="mb-3">
+                        <label for="currentPassword" class="form-label">当前密码 <span class="text-danger">*</span></label>
+                        <input type="password" class="form-control" id="currentPassword" name="current_password"
+                               placeholder="请输入当前密码" required minlength="4" maxlength="16">
+                    </div>
+                    <div class="mb-3">
+                        <label for="newPassword" class="form-label">新密码 <span class="text-danger">*</span></label>
+                        <input type="password" class="form-control" id="newPassword" name="new_password"
+                               placeholder="请输入新密码" required minlength="4" maxlength="16">
+                        <div class="form-text">密码长度必须在4-16位之间，只能包含英文、数字和符号</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="confirmNewPassword" class="form-label">确认新密码 <span class="text-danger">*</span></label>
+                        <input type="password" class="form-control" id="confirmNewPassword" name="confirm_password"
+                               placeholder="请再次输入新密码" required minlength="4" maxlength="16">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="submitChangePassword()">
+                    <i class="fas fa-save me-2"></i>确认修改
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/upload-match.css">
+{% endblock %}
+
+{% block extra_js %}
+<script src="/static/js/common.js"></script>
+<script src="/static/js/upload-match.js"></script>
+{% endblock %}

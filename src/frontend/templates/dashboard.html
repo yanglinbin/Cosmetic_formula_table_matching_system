@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+{% block title %}系统主页 - 化妆品配方表匹配系统{% endblock %}
+
+{% block content %}
+<!-- 导航栏 -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+        <a class="navbar-brand" href="/dashboard">🧪 化妆品配方匹配系统</a>
+        <div class="navbar-nav ms-auto">
+            <a class="nav-link" href="/upload-match">📋 配方表匹配</a>
+            <a class="nav-link" href="/reference-library">📚 配方库管理</a>
+            {% if is_admin %}
+            <a class="nav-link" href="/system-config">⚙️ 系统配置</a>
+            <a class="nav-link" href="/docs">📖 API文档</a>
+            {% endif %}
+            <div class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                    <i class="fas fa-user me-1"></i>{{ current_user.username }}
+                    {% if is_admin %}
+                    <span class="badge bg-warning ms-1">管理员</span>
+                    {% else %}
+                    <span class="badge bg-info ms-1">用户</span>
+                    {% endif %}
+                </a>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="#" onclick="showChangePasswordModal()">
+                        <i class="fas fa-key me-2"></i>修改密码
+                    </a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="#" onclick="logout()">
+                        <i class="fas fa-sign-out-alt me-2"></i>退出登录
+                    </a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="container">
+    <div class="page-header text-center">
+        <h1 class="fw-bold mb-4">欢迎使用化妆品配方表匹配系统</h1>
+        <p class="lead">您好，{{ current_user.username }}！{{ welcome_text }}</p>
+    </div>
+</div>
+
+<!-- 功能模块 -->
+<div class="container">
+    <div class="module-container">
+        <h2 class="module-title">🚀 功能模块</h2>
+        <div class="row justify-content-center">
+            <div class="col-md-4 mb-4">
+                <div class="card h-100 card-hover">
+                    <div class="card-body d-flex flex-column">
+                        <h4 class="text-center">📋 配方表匹配</h4>
+                        <p class="text-center flex-grow-1">上传Excel配方表并自动与配方库进行智能匹配</p>
+                        <div class="text-center mt-auto">
+                            <a href="/upload-match" class="btn btn-outline-primary">开始匹配</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="card h-100 card-hover">
+                    <div class="card-body d-flex flex-column">
+                        <h4 class="text-center">📚 配方库管理</h4>
+                        <p class="text-center flex-grow-1">管理参考配方库和原料目录</p>
+                        <div class="text-center mt-auto">
+                            <a href="/reference-library" class="btn btn-outline-warning">进入管理</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% if is_admin %}
+            <div class="col-md-4 mb-4">
+                <div class="card h-100 card-hover">
+                    <div class="card-body d-flex flex-column">
+                        <h4 class="text-center">⚙️ 系统配置</h4>
+                        <p class="text-center flex-grow-1">调整算法参数和分类权重配置</p>
+                        <div class="text-center mt-auto">
+                            <a href="/system-config" class="btn btn-outline-info">配置系统</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- 系统状态 -->
+<div class="container">
+    <div class="module-container">
+        <h2 class="module-title">📊 系统状态</h2>
+        <div class="row text-center justify-content-center" id="system-stats">
+            <div class="col-md-4">
+                <div class="stats-card">
+                    <h3 class="text-primary" id="catalog-count">-</h3>
+                    <p>原料目录数量</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stats-card">
+                    <h3 class="text-success" id="reference-formulas-count">-</h3>
+                    <p>配方库数量</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stats-card">
+                    <h3 class="text-warning" id="to-match-formulas-count">-</h3>
+                    <p>待匹配配方数量</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 修改密码模态框 -->
+<div class="modal fade" id="changePasswordModal" tabindex="-1" aria-labelledby="changePasswordModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="changePasswordModalLabel">
+                    <i class="fas fa-key me-2"></i>修改密码
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="changePasswordForm">
+                    <div class="mb-3">
+                        <label for="currentPassword" class="form-label">当前密码 <span class="text-danger">*</span></label>
+                        <input type="password" class="form-control" id="currentPassword" name="current_password"
+                               placeholder="请输入当前密码" required minlength="4" maxlength="16">
+                    </div>
+                    <div class="mb-3">
+                        <label for="newPassword" class="form-label">新密码 <span class="text-danger">*</span></label>
+                        <input type="password" class="form-control" id="newPassword" name="new_password"
+                               placeholder="请输入新密码" required minlength="4" maxlength="16">
+                        <div class="form-text">密码长度必须在4-16位之间，只能包含英文、数字和符号</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="confirmNewPassword" class="form-label">确认新密码 <span class="text-danger">*</span></label>
+                        <input type="password" class="form-control" id="confirmNewPassword" name="confirm_password"
+                               placeholder="请再次输入新密码" required minlength="4" maxlength="16">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="submitChangePassword()">
+                    <i class="fas fa-save me-2"></i>确认修改
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/dashboard.css">
+{% endblock %}
+
+{% block extra_js %}
+<script src="/static/js/dashboard.js"></script>
+{% endblock %}

@@ -1,0 +1,511 @@
+{% extends "base.html" %}
+{% block title %}📚 配方库管理 - 化妆品配方匹配系统{% endblock %}
+
+{% block content %}
+<!-- 导航栏 -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+        <a class="navbar-brand" href="/dashboard">🧪 化妆品配方匹配系统</a>
+        <div class="navbar-nav ms-auto">
+            <a class="nav-link" href="/upload-match">📋 配方表匹配</a>
+            <a class="nav-link active" href="/reference-library">📚 配方库管理</a>
+            {% if is_admin %}
+            <a class="nav-link" href="/system-config">⚙️ 系统配置</a>
+            <a class="nav-link" href="/docs">📖 API文档</a>
+            {% endif %}
+            <div class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                    <i class="fas fa-user me-1"></i>{{ current_user.username }}
+                    {% if is_admin %}
+                    <span class="badge bg-warning ms-1">管理员</span>
+                    {% else %}
+                    <span class="badge bg-info ms-1">用户</span>
+                    {% endif %}
+                </a>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="#" onclick="showChangePasswordModal()">
+                        <i class="fas fa-key me-2"></i>修改密码
+                    </a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="#" onclick="logout()">
+                        <i class="fas fa-sign-out-alt me-2"></i>退出登录
+                    </a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="container">
+    <div class="page-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <h1><i class="fas fa-database"></i> 配方库管理</h1>
+            <div>
+                <button class="btn btn-success me-2" onclick="showAddFormulaModal()">
+                    <i class="fas fa-plus"></i> 添加配方
+                </button>
+                <button class="btn btn-primary" onclick="showImportModal()">
+                    <i class="fas fa-upload"></i> 批量导入
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 统计卡片 -->
+    <div class="module-container">
+        <div class="row justify-content-center">
+            <div class="col-lg-2 col-md-4 col-sm-6">
+                <div class="card stats-card">
+                    <div class="card-body text-center">
+                        <h4 class="text-success"><i class="fas fa-flask"></i></h4>
+                        <h5 id="total-formulas">-</h5>
+                        <small class="text-muted">总配方数</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-2 col-md-4 col-sm-6">
+                <div class="card stats-card">
+                    <div class="card-body text-center">
+                        <h4 class="text-primary"><i class="fas fa-vial"></i></h4>
+                        <h5 id="total-ingredients">-</h5>
+                        <small class="text-muted">总成分数</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-2 col-md-4 col-sm-6">
+                <div class="card stats-card">
+                    <div class="card-body text-center">
+                        <h4 class="text-warning"><i class="fas fa-tags"></i></h4>
+                        <h5 id="product-types">-</h5>
+                        <small class="text-muted">产品类型</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-2 col-md-4 col-sm-6">
+                <div class="card stats-card">
+                    <div class="card-body text-center">
+                        <h4 class="text-secondary"><i class="fas fa-users"></i></h4>
+                        <h5 id="total-customers">-</h5>
+                        <small class="text-muted">客户数量</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-4 col-sm-6">
+                <div class="card stats-card">
+                    <div class="card-body text-center">
+                        <h4 class="text-info"><i class="fas fa-clock"></i></h4>
+                        <h5 id="last-updated">-</h5>
+                        <small class="text-muted">最后更新</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 搜索和筛选 -->
+    <div class="module-container">
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <div class="input-group">
+                    <span class="input-group-text"><i class="fas fa-search"></i></span>
+                    <input type="text" class="form-control search-box" id="searchInput"
+                           placeholder="搜索配方名称..." onkeyup="filterFormulas()">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" id="sortBy" onchange="sortFormulas()">
+                    <option value="updated_at">按更新时间</option>
+                    <option value="formula_name">按配方名称</option>
+                    <option value="ingredients_count">按成分数量</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <button class="btn btn-outline-secondary w-100" onclick="clearFilters()">
+                    <i class="fas fa-eraser"></i> 清除筛选
+                </button>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-6">
+                <select class="form-select" id="productTypeFilter" onchange="filterFormulas()">
+                    <option value="">📋 所有产品类型</option>
+                </select>
+            </div>
+            <div class="col-md-6">
+                <select class="form-select" id="customerFilter" onchange="filterFormulas()">
+                    <option value="">👥 所有客户</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- 配方列表 -->
+    <div class="module-container">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="module-title"><i class="fas fa-list"></i> 配方列表</h5>
+            <div>
+                <button class="btn btn-sm btn-outline-primary active" id="cardViewBtn" onclick="toggleView('card')">
+                    <i class="fas fa-th"></i> 卡片视图
+                </button>
+                <button class="btn btn-sm btn-outline-primary" id="tableViewBtn" onclick="toggleView('table')">
+                    <i class="fas fa-table"></i> 表格视图
+                </button>
+            </div>
+        </div>
+
+        <!-- 卡片视图 -->
+        <div id="formulasCardView" class="card-body">
+            <div class="row g-3">
+                <!-- 动态加载配方卡片 -->
+            </div>
+        </div>
+
+        <!-- 表格视图 -->
+        <div id="formulasTableView" class="card-body" style="display: none;">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                    <tr>
+                        <th>ID</th>
+                        <th style="line-height: 1.2;">配方名称</th>
+                        <th style="line-height: 2;">
+                            产品类型
+                            <button class="btn btn-link btn-sm p-0 ms-1" onclick="sortTable('product_type')" title="按产品类型排序">
+                                <i class="fas fa-sort text-muted"></i>
+                            </button>
+                        </th>
+                        <th style="white-space: nowrap;">成分数</th>
+                        <th>
+                            客户
+                            <button class="btn btn-link btn-sm p-0 ms-1" onclick="sortTable('customer')" title="按客户排序">
+                                <i class="fas fa-sort text-muted"></i>
+                            </button>
+                        </th>
+                        <th>上传者</th>
+                        <th>更新时间</th>
+                        <th>操作</th>
+                    </tr>
+                    </thead>
+                    <tbody id="formulasTableBody">
+                    <!-- 动态加载配方行 -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 添加配方模态框 -->
+<div class="modal fade" id="addFormulaModal" tabindex="-1" aria-labelledby="addFormulaModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addFormulaModalLabel">📁 添加配方</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addFormulaForm" enctype="multipart/form-data">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">配方表文件 (Excel格式)</label>
+                                <input type="file" class="form-control" name="file" accept=".xlsx,.xls" required
+                                       id="addFormulaFile">
+                                <div class="form-text">支持 .xlsx 和 .xls 格式</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">配方名称</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" name="formula_name" required id="addFormulaName"
+                                           placeholder="将自动使用文件名">
+                                    <button class="btn btn-outline-secondary" type="button" id="addAutoRecognizeBtn" 
+                                            onclick="manualRecognizeAddProductType()" title="根据配方名称自动识别产品类型">
+                                        <i class="fas fa-magic"></i>
+                                    </button>
+                                    <button class="btn btn-outline-info" type="button" 
+                                            onclick="showQuickMappingModal('add')" title="快速添加产品类型映射">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                </div>
+                                <div class="form-text">文件上传时会自动填充并识别产品类型，也可手动点击魔法按钮识别</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">产品类型 *</label>
+                                <select class="form-select" name="product_category" id="addProductCategory" required
+                                        onchange="updateAddSubcategories()">
+                                    <option value="">请选择产品大类</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">产品细分类型</label>
+                                <select class="form-select" name="product_subcategory" id="addProductSubcategory"
+                                        disabled>
+                                    <option value="">请先选择产品大类</option>
+                                </select>
+                                <input type="hidden" name="product_type" id="addFinalProductType">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="mb-3">
+                                <label class="form-label">客户信息</label>
+                                <div class="position-relative">
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" name="customer" id="addCustomerInput" 
+                                               placeholder="输入客户名称或点击箭头选择" autocomplete="off">
+                                        <button class="btn btn-outline-secondary" type="button" id="addCustomerDropdownBtn">
+                                            <i class="fas fa-chevron-down"></i>
+                                        </button>
+                                    </div>
+                                    <!-- 自定义下拉建议列表 -->
+                                    <div id="addCustomerSuggestions" class="customer-suggestions" style="display: none;">
+                                        <div class="suggestions-content">
+                                            <div class="text-muted p-2 small">开始输入以搜索客户...</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form-text">可手动输入客户名称，或点击下拉箭头选择已有客户</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="alert alert-info">
+                        <strong>提示：</strong>
+                        <ul class="mb-0 mt-2">
+                            <li>Excel文件应包含成分名称、含量等信息</li>
+                            <li>配方名称将自动使用文件名，也可手动修改</li>
+                            <li>添加到参考配方库中</li>
+                        </ul>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="submitAddFormula()">
+                    <i class="fas fa-plus"></i> 添加配方
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 编辑配方模态框 -->
+<div class="modal fade" id="editFormulaModal" tabindex="-1" aria-labelledby="editFormulaModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editFormulaModalLabel">✏️ 编辑配方</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editFormulaForm" enctype="multipart/form-data">
+                    <input type="hidden" id="editFormulaId" name="formula_id">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">配方表文件 (Excel格式，可选)</label>
+                                <input type="file" class="form-control" name="file" accept=".xlsx,.xls"
+                                       id="editFormulaFile">
+                                <div class="form-text">如需更换配方文件请选择新文件</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">配方名称</label>
+                                <input type="text" class="form-control" name="formula_name" required
+                                       id="editFormulaName">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">产品类型 *</label>
+                                <select class="form-select" name="product_category" id="editProductCategory" required
+                                        onchange="updateEditSubcategories()">
+                                    <option value="">请选择产品大类</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">产品细分类型</label>
+                                <select class="form-select" name="product_subcategory" id="editProductSubcategory"
+                                        disabled>
+                                    <option value="">请先选择产品大类</option>
+                                </select>
+                                <input type="hidden" name="product_type" id="editFinalProductType">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="mb-3">
+                                <label class="form-label">客户信息</label>
+                                <input type="text" class="form-control" name="customer" id="editCustomer"
+                                       placeholder="可选">
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="submitEditFormula()">
+                    <i class="fas fa-save"></i> 保存修改
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 批量导入模态框 -->
+<div class="modal fade" id="importModal" tabindex="-1" aria-labelledby="importModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="importModalLabel">📦 批量导入配方</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="importForm">
+                    <div class="mb-3">
+                        <label class="form-label">选择文件夹</label>
+                        <input type="file" class="form-control" id="importFolder" webkitdirectory multiple>
+                        <div class="form-text">
+                            请选择包含配方文件的文件夹。推荐文件夹结构：主文件夹/客户/产品大类/产品小类/配方文件.xlsx
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-primary" id="previewImportBtn"
+                                onclick="previewImport()" disabled>
+                            <i class="fas fa-eye"></i> 预览导入
+                        </button>
+                        <button type="button" class="btn btn-success" id="startImportBtn" onclick="startBatchImport()"
+                                disabled>
+                            <i class="fas fa-upload"></i> 开始导入
+                        </button>
+                    </div>
+                </form>
+
+                <!-- 预览区域 -->
+                <div id="importPreview" style="display: none;" class="mt-4">
+                    <h6>导入预览：</h6>
+                    <div id="importPreviewContent" class="border rounded p-3 bg-light"
+                         style="max-height: 300px; overflow-y: auto;">
+                    </div>
+                </div>
+
+                <!-- 进度区域 -->
+                <div id="importProgress" style="display: none;" class="mt-4">
+                    <h6>导入进度：</h6>
+                    <div class="progress mb-2">
+                        <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+                    </div>
+                    <div id="importStatus" class="text-muted">准备开始...</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 快速添加产品类型映射模态框 -->
+<div class="modal fade" id="quickMappingModal" tabindex="-1" aria-labelledby="quickMappingModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="quickMappingModalLabel">
+                    <i class="fas fa-plus"></i> 快速添加产品类型映射
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="quickMappingForm">
+                    <div class="mb-3">
+                        <label class="form-label">配方名称 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="mappingFromName" required
+                               placeholder="输入需要映射的配方名称">
+                        <div class="form-text">支持部分匹配，如输入"清洁剂"可匹配包含此关键词的所有配方名</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">映射到产品类型 <span class="text-danger">*</span></label>
+                        <select class="form-select" id="mappingToProductType" required>
+                            <option value="">请选择目标产品类型</option>
+                            <!-- 选项将动态从数据库加载 -->
+                        </select>
+                    </div>
+                    <div class="alert alert-info">
+                        <strong>说明：</strong> 添加映射后，系统会优先使用映射表进行产品类型识别。
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="submitQuickMapping('add')">
+                    <i class="fas fa-plus"></i> 添加映射
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 修改密码模态框 -->
+<div class="modal fade" id="changePasswordModal" tabindex="-1" aria-labelledby="changePasswordModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="changePasswordModalLabel">
+                    <i class="fas fa-key me-2"></i>修改密码
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="changePasswordForm">
+                    <div class="mb-3">
+                        <label for="currentPassword" class="form-label">当前密码 <span class="text-danger">*</span></label>
+                        <input type="password" class="form-control" id="currentPassword" name="current_password"
+                               placeholder="请输入当前密码" required minlength="4" maxlength="16">
+                    </div>
+                    <div class="mb-3">
+                        <label for="newPassword" class="form-label">新密码 <span class="text-danger">*</span></label>
+                        <input type="password" class="form-control" id="newPassword" name="new_password"
+                               placeholder="请输入新密码" required minlength="4" maxlength="16">
+                        <div class="form-text">密码长度必须在4-16位之间，只能包含英文、数字和符号</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="confirmNewPassword" class="form-label">确认新密码 <span class="text-danger">*</span></label>
+                        <input type="password" class="form-control" id="confirmNewPassword" name="confirm_password"
+                               placeholder="请再次输入新密码" required minlength="4" maxlength="16">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="submitChangePassword()">
+                    <i class="fas fa-save me-2"></i>确认修改
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/reference-library.css">
+{% endblock %}
+
+{% block extra_js %}
+<script src="/static/js/common.js"></script>
+<script src="/static/js/reference-library.js"></script>
+{% endblock %}

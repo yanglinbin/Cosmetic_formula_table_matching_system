@@ -1,0 +1,625 @@
+{% extends "base.html" %}
+{% block title %}系统配置 - 化妆品配方表匹配系统{% endblock %}
+
+{% block content %}
+<!-- 导航栏 -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+        <a class="navbar-brand" href="/dashboard">🧪 化妆品配方匹配系统</a>
+        <div class="navbar-nav ms-auto">
+            <a class="nav-link" href="/upload-match">📋 配方表匹配</a>
+            <a class="nav-link" href="/reference-library">📚 配方库管理</a>
+            {% if is_admin %}
+            <a class="nav-link active" href="/system-config">⚙️ 系统配置</a>
+            <a class="nav-link" href="/docs">📖 API文档</a>
+            {% endif %}
+            <div class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                    <i class="fas fa-user me-1"></i>{{ current_user.username }}
+                    {% if is_admin %}
+                    <span class="badge bg-warning ms-1">管理员</span>
+                    {% else %}
+                    <span class="badge bg-info ms-1">用户</span>
+                    {% endif %}
+                </a>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="#" onclick="showChangePasswordModal()">
+                        <i class="fas fa-key me-2"></i>修改密码
+                    </a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="#" onclick="logout()">
+                        <i class="fas fa-sign-out-alt me-2"></i>退出登录
+                    </a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="container">
+    <div class="page-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <h1><i class="fas fa-cogs"></i> 系统配置</h1>
+            <div>
+                <button class="btn btn-success me-2" onclick="saveAllConfig()">
+                    <i class="fas fa-save"></i> 保存所有配置
+                </button>
+                <button class="btn btn-secondary" onclick="resetAllConfig()">
+                    <i class="fas fa-undo"></i> 重置为默认
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="module-container">
+        <!-- 分类权重配置 -->
+        <div class="config-section">
+            <h3><i class="fas fa-balance-scale"></i> 分类权重配置</h3>
+
+            <div class="config-content">
+                <p class="text-muted mb-4">调整不同成分分类在匹配算法中的重要性（总和必须为1.0）</p>
+
+                <div class="row justify-content-center">
+                    <div class="col-md-2">
+                        <div class="config-item">
+                            <label class="form-label">
+                                <span class="badge bg-danger mb-2">防腐剂</span>
+                            </label>
+                            <input type="number" class="form-control weight-input"
+                                   id="weight-防腐剂" min="0" max="1" step="0.01" onchange="updateWeightSum()">
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="config-item">
+                            <label class="form-label">
+                                <span class="badge bg-warning mb-2">乳化剂</span>
+                            </label>
+                            <input type="number" class="form-control weight-input"
+                                   id="weight-乳化剂" min="0" max="1" step="0.01" onchange="updateWeightSum()">
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="config-item">
+                            <label class="form-label">
+                                <span class="badge bg-warning mb-2">增稠剂</span>
+                            </label>
+                            <input type="number" class="form-control weight-input"
+                                   id="weight-增稠剂" min="0" max="1" step="0.01" onchange="updateWeightSum()">
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="config-item">
+                            <label class="form-label">
+                                <span class="badge bg-warning mb-2">抗氧化剂</span>
+                            </label>
+                            <input type="number" class="form-control weight-input"
+                                   id="weight-抗氧化剂" min="0" max="1" step="0.01" onchange="updateWeightSum()">
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="config-item">
+                            <label class="form-label">
+                                <span class="badge bg-warning mb-2">表面活性剂</span>
+                            </label>
+                            <input type="number" class="form-control weight-input"
+                                   id="weight-表面活性剂" min="0" max="1" step="0.01" onchange="updateWeightSum()">
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="config-item">
+                            <label class="form-label">
+                                <span class="badge bg-secondary mb-2">其他</span>
+                            </label>
+                            <input type="number" class="form-control weight-input"
+                                   id="weight-其他" min="0" max="1" step="0.01" onchange="updateWeightSum()">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-3 d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>权重总和: <span id="weight-sum" class="weight-sum">0.00</span></strong>
+                        <span id="weight-warning" class="text-danger ms-2" style="display: none;">
+                            ⚠️ 权重总和必须为1.0
+                        </span>
+                    </div>
+                    <div>
+                        <button class="btn btn-primary" onclick="saveCategoryWeights()">
+                            <i class="fas fa-save"></i> 保存分类权重
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 匹配算法参数配置 -->
+        <div class="config-section">
+            <h3><i class="fas fa-sliders-h"></i> 匹配算法参数</h3>
+
+            <div class="config-content">
+                <p class="text-muted mb-4">调整核心匹配算法的参数设置</p>
+
+                <div class="row justify-content-center">
+                    <div class="col-md-3">
+                        <div class="config-item">
+                            <label class="form-label">成分组成相似度权重</label>
+                            <input type="number" class="form-control param-input"
+                                   id="composition_weight" min="0" max="1" step="0.01"
+                                   onchange="updateCompositionSum()">
+                            <small class="form-text text-muted">最终相似度权重</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="config-item">
+                            <label class="form-label">成分比例相似度权重</label>
+                            <input type="number" class="form-control param-input"
+                                   id="proportion_weight" min="0" max="1" step="0.01" onchange="updateCompositionSum()">
+                            <small class="form-text text-muted">最终相似度权重</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="config-item">
+                            <label class="form-label">复配匹配成功阈值</label>
+                            <input type="number" class="form-control param-input"
+                                   id="compound_threshold" min="0" max="1" step="0.01">
+                            <small class="form-text text-muted">复配匹配最低相似度</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="config-item">
+                            <label class="form-label">最小相似度阈值</label>
+                            <input type="number" class="form-control param-input"
+                                   id="min_similarity_threshold" min="0" max="1" step="0.01">
+                            <small class="form-text text-muted">显示结果最低相似度</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-3 d-flex justify-content-between align-items-center">
+                    <div>
+                        <small><strong>组成权重总和: <span id="composition-sum">0.00</span></strong>
+                            <span id="composition-warning" class="text-danger ms-2" style="display: none;">
+                            ⚠️ 总和必须为1.0
+                        </span></small>
+                    </div>
+                    <div>
+                        <button class="btn btn-primary" onclick="saveMatchingParams()">
+                            <i class="fas fa-save"></i> 保存匹配参数
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 产品类型配置 -->
+        <div class="config-section">
+            <h3><i class="fas fa-tags"></i> 产品类型配置</h3>
+
+            <div class="config-content">
+                <p class="text-muted mb-4">管理产品大类和细分类型，支持增删改操作</p>
+
+                <div id="productTypesContainer">
+                    <!-- 动态加载产品类型配置 -->
+                </div>
+
+                <div class="mt-4 text-end">
+                    <button class="btn btn-success me-2" onclick="addProductCategory()">
+                        <i class="fas fa-plus"></i> 添加产品大类
+                    </button>
+                    <button class="btn btn-primary" onclick="saveProductTypes()">
+                        <i class="fas fa-save"></i> 保存产品类型配置
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 产品类型映射管理 -->
+        <div class="config-section">
+            <h3><i class="fas fa-sitemap"></i> 产品类型映射管理</h3>
+
+            <div class="config-content">
+                <p class="text-muted mb-4">管理不规则产品名称到标准产品类型的映射关系</p>
+
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="input-group" style="max-width: 400px;">
+                        <input type="text" class="form-control" id="mappingSearchInput" placeholder="搜索映射...">
+                        <button class="btn btn-outline-secondary" type="button" onclick="searchMappings()">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                    <button class="btn btn-success" onclick="showAddMappingModal()">
+                        <i class="fas fa-plus"></i> 添加映射
+                    </button>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover" id="mappingsTable">
+                        <thead class="table-dark">
+                            <tr>
+                                <th width="40%">配方名称匹配</th>
+                                <th width="40%">映射到产品类型</th>
+                                <th width="20%">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="mappingsTableBody">
+                            <tr id="loadingRow">
+                                <td colspan="3" class="text-center">
+                                    <div class="spinner-border spinner-border-sm me-2"></div>
+                                    正在加载映射数据...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="mt-3 d-flex justify-content-between align-items-center">
+                    <div>
+                        <small class="text-muted">共 <span id="mappingsCount">0</span> 条映射</small>
+                    </div>
+                    <div>
+                        <button class="btn btn-danger" onclick="clearAllMappings()" title="清空所有映射">
+                            <i class="fas fa-trash-alt"></i> 清空全部
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 用户管理模块 -->
+        <div class="config-section">
+            <h3><i class="fas fa-users"></i> 用户管理</h3>
+
+            <div class="config-content">
+                <p class="text-muted mb-4">管理系统中的所有用户账户</p>
+
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="input-group" style="max-width: 400px;">
+                        <input type="text" class="form-control" id="userSearchInput" placeholder="搜索用户...">
+                        <button class="btn btn-outline-secondary" type="button" onclick="searchUsers()">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                    <button class="btn btn-success" onclick="showAddUserModal()">
+                        <i class="fas fa-plus"></i> 添加用户
+                    </button>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover" id="usersTable">
+                        <thead class="table-dark">
+                            <tr>
+                                <th width="15%">ID</th>
+                                <th width="20%">用户名</th>
+                                <th width="15%">角色</th>
+                                <th width="15%">状态</th>
+                                <th width="20%">最后登录</th>
+                                <th width="15%">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTableBody">
+                            <tr id="loadingUsersRow">
+                                <td colspan="6" class="text-center">
+                                    <div class="spinner-border spinner-border-sm me-2"></div>
+                                    正在加载用户数据...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="mt-3 d-flex justify-content-between align-items-center">
+                    <div>
+                        <small class="text-muted">共 <span id="usersCount">0</span> 个用户</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 系统统计信息 -->
+        <div class="config-section">
+            <h3><i class="fas fa-chart-bar"></i> 系统统计信息</h3>
+
+            <div class="config-content">
+                <p class="text-muted mb-4">当前系统数据统计</p>
+
+                <div class="row text-center justify-content-center" id="system-stats">
+                    <div class="col-md-3">
+                        <div class="stats-card">
+                            <h3 class="text-primary" id="catalog-count">-</h3>
+                            <p>原料目录数量</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stats-card">
+                            <h3 class="text-success" id="reference-formulas-count">-</h3>
+                            <p>参考配方数量</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stats-card">
+                            <h3 class="text-warning" id="product-types-count">-</h3>
+                            <p>产品类型数量</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stats-card">
+                            <h3 class="text-info" id="mappings-count">-</h3>
+                            <p>产品类型映射数量</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stats-card">
+                            <h3 class="text-secondary" id="users-count">-</h3>
+                            <p>用户数量</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 添加映射模态框 -->
+<div class="modal fade" id="addMappingModal" tabindex="-1" aria-labelledby="addMappingModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addMappingModalLabel">
+                    <i class="fas fa-plus"></i> 添加产品类型映射
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addMappingForm">
+                    <div class="mb-3">
+                        <label class="form-label">配方名称匹配 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="addMappingFromName" required
+                               placeholder="输入需要映射的配方名称">
+                        <div class="form-text">支持部分匹配，如输入"清洁剂"可匹配包含此关键词的所有配方名</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">映射到产品类型 <span class="text-danger">*</span></label>
+                        <select class="form-select" id="addMappingToProductType" required>
+                            <option value="">请选择目标产品类型</option>
+                            <!-- 选项将动态从数据库加载 -->
+                        </select>
+                        <div class="form-text">选择配方名称应该匹配到的产品类型</div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="submitAddMapping()">
+                    <i class="fas fa-save"></i> 添加映射
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 编辑映射模态框 -->
+<div class="modal fade" id="editMappingModal" tabindex="-1" aria-labelledby="editMappingModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editMappingModalLabel">
+                    <i class="fas fa-edit"></i> 编辑产品类型映射
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editMappingForm">
+                    <input type="hidden" id="editMappingOriginalFromName">
+                    <div class="mb-3">
+                        <label class="form-label">配方名称匹配 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="editMappingFromName" required
+                               placeholder="输入需要映射的配方名称">
+                        <div class="form-text">支持部分匹配，如输入"清洁剂"可匹配包含此关键词的所有配方名</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">映射到产品类型 <span class="text-danger">*</span></label>
+                        <select class="form-select" id="editMappingToProductType" required>
+                            <option value="">请选择目标产品类型</option>
+                            <!-- 选项将动态从数据库加载 -->
+                        </select>
+                        <div class="form-text">选择配方名称应该匹配到的产品类型</div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="submitEditMapping()">
+                    <i class="fas fa-save"></i> 保存更改
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 添加用户模态框 -->
+<div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addUserModalLabel">
+                    <i class="fas fa-plus"></i> 添加用户
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addUserForm">
+                    <div class="mb-3">
+                        <label class="form-label">用户名 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="addUserUsername" required
+                               placeholder="输入用户名（1-16位）">
+                        <div class="form-text">只能包含英文、数字和符号，长度1-16位</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">密码 <span class="text-danger">*</span></label>
+                        <input type="password" class="form-control" id="addUserPassword" required
+                               placeholder="输入密码（4-16位）">
+                        <div class="form-text">只能包含英文、数字和符号，长度4-16位</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">角色 <span class="text-danger">*</span></label>
+                        <select class="form-select" id="addUserRole" required>
+                            <option value="user">普通用户</option>
+                            <option value="admin">管理员</option>
+                        </select>
+                        <div class="form-text">管理员拥有所有权限</div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="submitAddUser()">
+                    <i class="fas fa-save"></i> 添加用户
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 编辑用户模态框 -->
+<div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editUserModalLabel">
+                    <i class="fas fa-edit"></i> 编辑用户
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editUserForm">
+                    <input type="hidden" id="editUserId">
+                    <div class="mb-3">
+                        <label class="form-label">用户名</label>
+                        <input type="text" class="form-control" id="editUserUsername"
+                               placeholder="输入用户名（1-16位）">
+                        <div class="form-text">只能包含英文、数字和符号，长度1-16位</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">新密码</label>
+                        <input type="password" class="form-control" id="editUserPassword"
+                               placeholder="留空则不修改密码">
+                        <div class="form-text">只能包含英文、数字和符号，长度4-16位</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">角色</label>
+                        <select class="form-select" id="editUserRole">
+                            <option value="user">普通用户</option>
+                            <option value="admin">管理员</option>
+                        </select>
+                        <div class="form-text">管理员拥有所有权限</div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="editUserActive">
+                            <label class="form-check-label" for="editUserActive">
+                                激活状态
+                            </label>
+                        </div>
+                        <div class="form-text">停用后用户无法登录</div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="submitEditUser()">
+                    <i class="fas fa-save"></i> 保存更改
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 重置密码模态框 -->
+<div class="modal fade" id="resetPasswordModal" tabindex="-1" aria-labelledby="resetPasswordModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="resetPasswordModalLabel">
+                    <i class="fas fa-key"></i> 重置密码
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="resetPasswordForm">
+                    <input type="hidden" id="resetPasswordUserId">
+                    <div class="mb-3">
+                        <label class="form-label">用户名</label>
+                        <input type="text" class="form-control" id="resetPasswordUsername" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">新密码 <span class="text-danger">*</span></label>
+                        <input type="password" class="form-control" id="resetPasswordNewPassword" required
+                               placeholder="输入新密码（4-16位）">
+                        <div class="form-text">只能包含英文、数字和符号，长度4-16位</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">确认密码 <span class="text-danger">*</span></label>
+                        <input type="password" class="form-control" id="resetPasswordConfirmPassword" required
+                               placeholder="再次输入新密码">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-warning" onclick="submitResetPassword()">
+                    <i class="fas fa-key"></i> 重置密码
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 修改密码模态框 -->
+<div class="modal fade" id="changePasswordModal" tabindex="-1" aria-labelledby="changePasswordModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="changePasswordModalLabel">
+                    <i class="fas fa-key me-2"></i>修改密码
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="changePasswordForm">
+                    <div class="mb-3">
+                        <label for="currentPassword" class="form-label">当前密码 <span class="text-danger">*</span></label>
+                        <input type="password" class="form-control" id="currentPassword" name="current_password"
+                               placeholder="请输入当前密码" required minlength="4" maxlength="16">
+                    </div>
+                    <div class="mb-3">
+                        <label for="newPassword" class="form-label">新密码 <span class="text-danger">*</span></label>
+                        <input type="password" class="form-control" id="newPassword" name="new_password"
+                               placeholder="请输入新密码" required minlength="4" maxlength="16">
+                        <div class="form-text">密码长度必须在4-16位之间，只能包含英文、数字和符号</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="confirmNewPassword" class="form-label">确认新密码 <span class="text-danger">*</span></label>
+                        <input type="password" class="form-control" id="confirmNewPassword" name="confirm_password"
+                               placeholder="请再次输入新密码" required minlength="4" maxlength="16">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="submitChangePassword()">
+                    <i class="fas fa-save me-2"></i>确认修改
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/system-config.css">
+{% endblock %}
+
+{% block extra_js %}
+<script src="/static/js/system-config.js"></script>
+{% endblock %}

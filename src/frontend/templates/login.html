@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}用户登录 - 化妆品配方表匹配系统{% endblock %}
+
+{% block extra_css %}
+<link href="/static/css/login.css" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="login-wrapper">
+    <div class="login-container row g-0">
+        <!-- 左侧介绍 -->
+        <div class="col-md-6 login-left">
+            <div>
+                <h1 class="mb-4">
+                    <i class="fas fa-flask me-3"></i>
+                    化妆品配方表匹配系统
+                </h1>
+            </div>
+        </div>
+
+        <!-- 右侧登录表单 -->
+        <div class="col-md-6 login-right">
+            <div class="text-center mb-4">
+                <h3 class="mb-2">用户登录</h3>
+            </div>
+
+            <!-- 登录表单 -->
+            <form id="loginForm">
+                <div class="mb-3">
+                    <label for="username" class="form-label">用户名</label>
+                    <input type="text" class="form-control" id="username" name="username"
+                           placeholder="请输入用户名" required maxlength="16">
+                </div>
+
+                <div class="mb-4">
+                    <label for="password" class="form-label">密码</label>
+                    <input type="password" class="form-control" id="password" name="password"
+                           placeholder="请输入密码" required minlength="4" maxlength="16">
+                </div>
+
+                <div class="d-grid mb-3">
+                    <button type="submit" class="btn btn-login">
+                        <i class="fas fa-sign-in-alt me-2"></i>登录
+                    </button>
+                </div>
+
+                <div class="d-grid">
+                    <button type="button" class="btn btn-register" onclick="showRegisterModal()">
+                        <i class="fas fa-user-plus me-2"></i>注册新账号
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 注册模态框 -->
+<div class="modal fade" id="registerModal" tabindex="-1" aria-labelledby="registerModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="registerModalLabel">
+                    <i class="fas fa-user-plus me-2"></i>注册新账号
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="registerForm">
+                    <div class="mb-3">
+                        <label for="regUsername" class="form-label">用户名</label>
+                        <input type="text" class="form-control" id="regUsername" name="username"
+                               placeholder="1-16位英文数字符号" required maxlength="16">
+                        <div class="form-text">只能包含英文字母、数字和符号</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="regPassword" class="form-label">密码</label>
+                        <input type="password" class="form-control" id="regPassword" name="password"
+                               placeholder="4-16位英文数字符号" required minlength="4" maxlength="16">
+                        <div class="form-text">只能包含英文字母、数字和符号</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="confirmPassword" class="form-label">确认密码</label>
+                        <input type="password" class="form-control" id="confirmPassword"
+                               placeholder="请再次输入密码" required minlength="4" maxlength="16">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="submitRegister()">
+                    <i class="fas fa-user-plus me-2"></i>注册
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="/static/js/login.js"></script>
+{% endblock %}

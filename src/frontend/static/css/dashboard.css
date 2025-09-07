@@ -1,0 +1,5 @@
+/* 导入通用组件 */
+@import url('components.css');
+
+/* Dashboard 页面专有样式 */
+/* 这里只保留 dashboard 页面特有的样式，其他都使用通用组件 */
