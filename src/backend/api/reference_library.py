@@ -8,6 +8,7 @@ import os
 import tempfile
 import logging
 from datetime import datetime
+from decimal import Decimal
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Depends
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
@@ -22,6 +23,20 @@ from src.backend.formula_parser import FormulaParser
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1", tags=["参考配方库"])
+
+
+def safe_float(value):
+    """安全转换Decimal为float"""
+    if value is None:
+        return 0.0
+    if isinstance(value, Decimal):
+        return float(value)
+    if isinstance(value, (int, float)):
+        return float(value)
+    try:
+        return float(value)
+    except (ValueError, TypeError):
+        return 0.0
 
 
 @router.get("/reference-library-stats")
@@ -189,9 +204,9 @@ async def get_reference_formula_detail(formula_id: int, db: Session = Depends(ge
                     "ingredient_sequence": ing.ingredient_sequence or 1,
                     "standard_chinese_name": ing.standard_chinese_name or '',
                     "inci_name": ing.inci_name or '',
-                    "ingredient_content": float(ing.ingredient_content or 0),
-                    "component_content": float(ing.component_content or 0),
-                    "actual_component_content": float(ing.actual_component_content or 0),
+                    "ingredient_content": safe_float(ing.ingredient_content),
+                    "component_content": safe_float(ing.component_content),
+                    "actual_component_content": safe_float(ing.actual_component_content),
                     "purpose": ing.purpose or "其他",
                     "category": ing.purpose or "其他"
                 }

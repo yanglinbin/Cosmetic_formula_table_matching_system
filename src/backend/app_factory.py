@@ -21,15 +21,17 @@ def get_session_timeout() -> int:
     """从配置文件读取会话超时时间"""
     try:
         config = configparser.ConfigParser()
-        config_path = "system_config.ini"
+        # 修正路径：项目根目录的system_config.ini
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        config_path = os.path.join(project_root, "system_config.ini")
         
         if os.path.exists(config_path):
             config.read(config_path, encoding='utf-8')
             session_timeout = config.getint('security', 'session_timeout', fallback=1800)
-            logger.info(f"从配置文件读取会话超时时间: {session_timeout}秒")
+            logger.info(f"从配置文件读取会话超时时间: {session_timeout}秒 (路径: {config_path})")
             return session_timeout
         else:
-            logger.warning("配置文件不存在，使用默认会话超时时间: 1800秒")
+            logger.warning(f"配置文件不存在: {config_path}，使用默认会话超时时间: 1800秒")
             return 1800
     except Exception as e:
         logger.error(f"读取会话超时配置失败: {e}，使用默认值: 1800秒")

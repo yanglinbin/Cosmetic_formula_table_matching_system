@@ -9,6 +9,7 @@ import json
 import tempfile
 import shutil
 import logging
+from decimal import Decimal
 from typing import List
 from pydantic import BaseModel
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Depends
@@ -24,6 +25,20 @@ from src.backend.formula_parser import FormulaParser
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1", tags=["配方匹配"])
+
+
+def safe_float(value):
+    """安全转换Decimal为float"""
+    if value is None:
+        return 0.0
+    if isinstance(value, Decimal):
+        return float(value)
+    if isinstance(value, (int, float)):
+        return float(value)
+    try:
+        return float(value)
+    except (ValueError, TypeError):
+        return 0.0
 
 
 class BatchDeleteRequest(BaseModel):
@@ -544,9 +559,9 @@ async def get_formula_detail(
                 purpose = ingredient.purpose or "未填写"
 
                 # 安全地转换数值字段 - 保持10位小数精度
-                ingredient_content = round(float(ingredient.ingredient_content or 0), 10)
-                component_content = round(float(ingredient.component_content or 0), 10)
-                actual_component_content = round(float(ingredient.actual_component_content or 0), 10)
+                ingredient_content = round(safe_float(ingredient.ingredient_content), 10)
+                component_content = round(safe_float(ingredient.component_content), 10)
+                actual_component_content = round(safe_float(ingredient.actual_component_content), 10)
 
                 ingredients_data.append({
                     "id": ingredient.id,
@@ -568,7 +583,7 @@ async def get_formula_detail(
 
         # 统计信息 - 改进错误处理，保持10位小数精度
         try:
-            total_content = round(sum([float(ing.get('ingredient_content', 0)) for ing in ingredients_data]), 10)
+            total_content = round(sum([safe_float(ing.get('ingredient_content')) for ing in ingredients_data]), 10)
         except Exception as e:
             logger.error(f"计算总含量失败: {e}")
             total_content = 0

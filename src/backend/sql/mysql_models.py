@@ -518,10 +518,13 @@ class SystemConfigManager:
         try:
             import configparser
             config = configparser.ConfigParser()
-            config_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'system_config.ini')
+            # 修正路径：项目根目录的system_config.ini
+            project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+            config_path = os.path.join(project_root, 'system_config.ini')
             
             if os.path.exists(config_path):
                 config.read(config_path, encoding='utf-8')
+                logger.info(f"成功加载系统配置: {config_path}")
                 return config
             else:
                 logger.warning(f"配置文件不存在: {config_path}")
@@ -743,6 +746,21 @@ class DualFormulaLibraryHandler:
     @staticmethod
     def get_formula_structure(formula_id: int, session, table_type='reference') -> dict:
         """获取配方的完整结构（单配+复配）"""
+        from decimal import Decimal
+        
+        def safe_float(value):
+            """安全转换Decimal为float"""
+            if value is None:
+                return 0.0
+            if isinstance(value, Decimal):
+                return float(value)
+            if isinstance(value, (int, float)):
+                return float(value)
+            try:
+                return float(value)
+            except (ValueError, TypeError):
+                return 0.0
+                
         # 根据表类型选择对应的模型
         if table_type == 'reference':
             IngredientModel = FormulaIngredients
@@ -778,10 +796,10 @@ class DualFormulaLibraryHandler:
                 ingredient_data = {
                     'ingredient_id': ingredient_id,
                     'type': 'single',
-                    'chinese_name': component.standard_chinese_name,
-                    'inci_name': component.inci_name,
-                    'content': component.ingredient_content or 0,  # 统一使用ingredient_content
-                    'actual_content': component.actual_component_content or 0,
+                    'chinese_name': component.standard_chinese_name or '',
+                    'inci_name': component.inci_name or '',
+                    'content': safe_float(component.ingredient_content),  # 修复：安全转换Decimal
+                    'actual_content': safe_float(component.actual_component_content),  # 修复：安全转换Decimal
                     'purpose': component.purpose or '其他',  # 添加purpose字段
                     'catalog_id': component.catalog_id  # 添加catalog_id字段
                 }
@@ -791,7 +809,7 @@ class DualFormulaLibraryHandler:
                 compound_data = {
                     'ingredient_id': ingredient_id,
                     'type': 'compound',
-                    'total_content': components[0].ingredient_content or 0,  # 统一使用ingredient_content
+                    'total_content': safe_float(components[0].ingredient_content),  # 修复：安全转换Decimal
                     'purpose': components[0].purpose or '其他',  # 添加复配的purpose字段
                     'components': []
                 }
@@ -799,10 +817,10 @@ class DualFormulaLibraryHandler:
                 for component in components:
                     component_data = {
                         'sequence': component.ingredient_sequence,
-                        'chinese_name': component.standard_chinese_name,
-                        'inci_name': component.inci_name,
-                        'component_content': component.component_content or 0,
-                        'actual_content': component.actual_component_content or 0,
+                        'chinese_name': component.standard_chinese_name or '',
+                        'inci_name': component.inci_name or '',
+                        'component_content': safe_float(component.component_content),  # 修复：安全转换Decimal
+                        'actual_content': safe_float(component.actual_component_content),  # 修复：安全转换Decimal
                         'catalog_id': component.catalog_id  # 添加catalog_id字段
                     }
                     compound_data['components'].append(component_data)
