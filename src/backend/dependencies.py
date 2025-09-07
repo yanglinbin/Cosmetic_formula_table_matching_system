@@ -39,14 +39,23 @@ def initialize_database():
         _engine = create_engine(get_mysql_url())
         _SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=_engine)
         
+        # 自动创建数据表（如果不存在）
+        try:
+            from src.backend.sql.mysql_models import Base
+            Base.metadata.create_all(bind=_engine)
+            logger.info("✅ 数据库表结构检查/创建完成")
+        except Exception as e:
+            logger.error(f"❌ 数据库表创建失败: {e}")
+            raise
+        
         # 启动时自动初始化系统配置和管理员用户
         try:
             with _SessionLocal() as db:
                 SystemConfigManager.initialize_default_config(db)
                 SystemConfigManager.initialize_admin_user(db)
-            logger.info("系统配置和管理员用户自动初始化完成")
+            logger.info("✅ 系统配置和管理员用户自动初始化完成")
         except Exception as e:
-            logger.warning(f"系统配置自动初始化失败: {e}")
+            logger.warning(f"⚠️ 系统配置自动初始化失败: {e}")
     
     return _engine, _SessionLocal
 
