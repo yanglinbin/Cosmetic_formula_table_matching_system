@@ -130,7 +130,7 @@ src/
 ### 1. 克隆项目
 
 ```bash
-git clone https://github.com/your-username/cosmetic-formula-matching-system.git
+git clone https://github.com/yanglinbin/cosmetic-formula-matching-system.git
 cd cosmetic-formula-matching-system
 ```
 
