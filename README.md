@@ -1,4 +1,8 @@
+<div align="center">
+
 # 化妆品配方表匹配系统
+
+</div>
 
 <div align="center">
 
@@ -7,7 +11,7 @@
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Version](https://img.shields.io/badge/version-v3.0.0-brightgreen.svg)
 
-**专业的化妆品配方分析与匹配平台 - 双配方库版本**
+**化妆品配方分析与匹配平台**
 
 [功能特性](#功能特性) •
 [快速开始](#快速开始) •
@@ -126,12 +130,11 @@ src/
 
 - Python 3.8+
 - MySQL 8.0+
-- 8GB+ 内存 (推荐)
 
 ### 1. 克隆项目
 
 ```bash
-git clone https://github.com/your-username/cosmetic-formula-matching-system.git
+git clone https://github.com/yanglinbin/cosmetic-formula-matching-system.git
 cd cosmetic-formula-matching-system
 ```
 
@@ -393,25 +396,6 @@ backup_enabled = True  # 备份功能
 
 ---
 
-## 🐛 故障排除
-
-### 常见问题
-
-1. **数据库连接失败**
-   - 检查MySQL服务状态
-   - 验证数据库配置信息
-   - 确认数据库用户权限
-
-2. **Excel解析失败**
-   - 检查文件格式 (.xlsx/.xls)
-   - 验证表头结构
-   - 查看解析日志信息
-
-3. **匹配结果为空**
-   - 检查配方库数据
-   - 调整相似度阈值
-   - 验证成分映射关系
-
 ### 日志查看
 
 系统日志包含详细的运行信息：
@@ -451,35 +435,12 @@ grep "ERROR" app.log
 
 ---
 
-## 📞 支持与联系
-
-- **问题反馈**: [GitHub Issues](https://github.com/your-username/cosmetic-formula-matching-system/issues)
-- **功能请求**: [GitHub Discussions](https://github.com/your-username/cosmetic-formula-matching-system/discussions)
-- **邮件联系**: your-email@example.com
-
----
-
-## 🔄 更新日志
-
-### v3.0.0 (2024-01-XX)
-- ✨ 双配方库架构重构
-- 🚀 新增智能匹配引擎
-- 🎨 全新Web界面设计
-- 📊 完善的系统配置功能
-
-### v2.x.x
-- 基础配方匹配功能
-- Excel解析支持
-- 简单Web界面
-
----
-
 <div align="center">
 
 **[⬆ 回到顶部](#化妆品配方表匹配系统)**
 
 ---
 
-Made with ❤️ by [Your Name](https://github.com/your-username)
+Made with ❤️ by [yilabao](https://github.com/yanglinbin)
 
 </div>
