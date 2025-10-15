@@ -7,7 +7,7 @@
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Version](https://img.shields.io/badge/version-v3.0.0-brightgreen.svg)
 
-**专业的化妆品配方分析与匹配平台 - 双配方库版本**
+**化妆品配方分析与匹配平台**
 
 [功能特性](#功能特性) •
 [快速开始](#快速开始) •
