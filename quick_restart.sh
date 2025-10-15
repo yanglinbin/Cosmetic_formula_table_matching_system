@@ -95,12 +95,12 @@ check_port() {
 
 check_port 3306 "MySQL"
 check_port 8000 "Python应用"
-check_port 80 "Nginx"
+check_port 8010 "Nginx"
 
 # 8. HTTP连接测试
 echo
 info "测试HTTP连接..."
-if timeout 10 curl -s http://localhost > /dev/null 2>&1; then
+if timeout 10 curl -s http://localhost:8010 > /dev/null 2>&1; then
     success "HTTP服务: 响应正常"
 else
     warn "HTTP服务: 响应异常"
@@ -113,7 +113,7 @@ echo "======================================================"
 if $all_good; then
     success "🎉 所有服务重启完成，系统运行正常！"
     echo
-    info "访问地址: http://$(curl -s ifconfig.me 2>/dev/null || echo 'YOUR_SERVER_IP')"
+    info "访问地址: http://$(curl -s ifconfig.me 2>/dev/null || echo 'YOUR_SERVER_IP'):8010"
     info "管理账号: admin / yanglinbin0106"
 else
     warn "⚠️ 服务重启完成，但发现一些问题"

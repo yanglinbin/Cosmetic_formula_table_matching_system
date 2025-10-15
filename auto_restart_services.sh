@@ -171,10 +171,10 @@ health_check() {
     # 检查端口
     check_port 3306 "MySQL" || failed=1
     check_port 8000 "Python应用" || failed=1
-    check_port 80 "Nginx" || failed=1
+    check_port 8010 "Nginx" || failed=1
     
     # HTTP健康检查
-    if timeout 10 curl -s http://localhost > /dev/null 2>&1; then
+    if timeout 10 curl -s http://localhost:8010 > /dev/null 2>&1; then
         success "HTTP服务响应正常"
     else
         error "HTTP服务响应异常"
@@ -218,13 +218,13 @@ force_cleanup() {
         sleep 2
     fi
     
-    # 清理80端口占用（如果不是nginx）
+    # 清理8010端口占用（如果不是nginx）
     local nginx_pid=$(pgrep nginx | head -1)
-    local port80_pids=$(lsof -ti:80 2>/dev/null)
-    if [[ -n "$port80_pids" ]]; then
-        for pid in $port80_pids; do
+    local port8010_pids=$(lsof -ti:8010 2>/dev/null)
+    if [[ -n "$port8010_pids" ]]; then
+        for pid in $port8010_pids; do
             if [[ "$pid" != "$nginx_pid" ]]; then
-                warn "强制结束占用端口80的非nginx进程: $pid"
+                warn "强制结束占用端口8010的非nginx进程: $pid"
                 kill -9 "$pid" 2>/dev/null
             fi
         done
@@ -306,7 +306,7 @@ restart_nginx() {
     systemctl start nginx
     
     if wait_for_service nginx 30; then
-        if wait_for_port 80 20; then
+        if wait_for_port 8010 20; then
             success "Nginx服务重启成功"
             return 0
         fi
@@ -321,7 +321,7 @@ graceful_restart() {
     info "执行优雅重启..."
     
     # 获取当前连接数
-    local connections=$(netstat -ant | grep :80 | wc -l)
+    local connections=$(netstat -ant | grep :8010 | wc -l)
     info "当前HTTP连接数: $connections"
     
     if [[ $connections -gt 0 ]]; then
@@ -329,7 +329,7 @@ graceful_restart() {
         local count=0
         while [[ $connections -gt 0 && $count -lt 30 ]]; do
             sleep 2
-            connections=$(netstat -ant | grep :80 | wc -l)
+            connections=$(netstat -ant | grep :8010 | wc -l)
             count=$((count + 1))
             echo -n "."
         done
@@ -417,13 +417,13 @@ check_all_services() {
         nginx_status="${RED}已停止${NC}"
     fi
     
-    if check_port 80 "Nginx" > /dev/null 2>&1; then
+    if check_port 8010 "Nginx" > /dev/null 2>&1; then
         nginx_port="${GREEN}监听${NC}"
     else
         nginx_port="${RED}未监听${NC}"
     fi
     
-    printf "%-20s %-24s %-10s %-24s\n" "Nginx" "$nginx_status" "80" "$nginx_port"
+    printf "%-20s %-24s %-10s %-24s\n" "Nginx" "$nginx_status" "8010" "$nginx_port"
     
     echo
     
@@ -436,7 +436,7 @@ check_all_services() {
     # HTTP连接测试
     echo
     info "HTTP连接测试:"
-    if timeout 5 curl -s -o /dev/null -w "HTTP状态码: %{http_code}, 响应时间: %{time_total}s\n" http://localhost; then
+    if timeout 5 curl -s -o /dev/null -w "HTTP状态码: %{http_code}, 响应时间: %{time_total}s\n" http://localhost:8010; then
         success "HTTP服务正常"
     else
         error "HTTP服务异常"
