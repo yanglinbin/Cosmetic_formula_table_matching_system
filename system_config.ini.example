@@ -1,8 +1,7 @@
 [admin]
 # 管理员账户配置
-username = admin
-password = yanglinbin0106
-
+username = your_username
+password = your_password
 [security]
 # 安全配置
 session_timeout = 3600
