@@ -437,31 +437,6 @@ python main.py                # 开发调试
 
 ---
 
-## 🚢 Linux 部署脚本
-
-仓库提供两个基于 systemd 的运维脚本（目标路径约定 `/opt/cosmetic_formula_system`，服务单元 `mysql`、`cosmetic-formula`、`nginx`）：
-
-### auto_restart_services.sh（完整版）
-
-```bash
-sudo ./auto_restart_services.sh              # 完全重启（MySQL + 应用 + Nginx）
-sudo ./auto_restart_services.sh app          # 只重启应用
-sudo ./auto_restart_services.sh graceful     # 优雅重启（等待现有连接结束）
-sudo ./auto_restart_services.sh --check      # 仅检查服务状态
-sudo ./auto_restart_services.sh -b -f        # 备份配置并强制重启
-```
-
-支持模式：`full` / `app` / `web` / `db` / `graceful`；支持选项 `-h`（帮助）、`-v`（详细）、`-f`（强制）、`-b`（备份）、`-c`（检查）、`-t`（测试模式）。包含健康检查、端口检测、等待启动、配置备份与日志记录（`/var/log/cosmetic_formula_restart.log`）。
-
-### quick_restart.sh（简化版）
-
-```bash
-sudo ./quick_restart.sh
-```
-
-停止并重启应用与 Nginx（MySQL 未运行时自动启动），随后检查服务状态、端口监听与 HTTP 连通性。
-
----
 
 ## 🤝 贡献指南
 
