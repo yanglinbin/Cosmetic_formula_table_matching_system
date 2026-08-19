@@ -433,7 +433,7 @@ python main.py                # 开发调试
 - **样式**：`src/frontend/static/css/global.css` 为空文件；`dashboard.css` 内容较少
 - **安全**：会话密钥为硬编码字符串，密码使用 SHA-256 哈希（未加盐）存储，CORS 允许所有来源；生产环境请修改 `app_factory.py` 中的 `secret_key`、配置文件中的管理员密码，并按需收紧 CORS
 - **监听地址**：`main.py` 默认仅监听 `127.0.0.1:8000`；如需对外提供服务，可配合 Nginx 反向代理（部署脚本默认约定 Nginx 端口 8010）
-- **许可证**：仓库当前未附带 LICENSE 文件
+- **许可证**：本项目使用 [MIT 许可证](./LICENSE)
 
 ---
 
